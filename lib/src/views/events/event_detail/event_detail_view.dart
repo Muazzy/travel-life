@@ -242,45 +242,101 @@ class EventDetailView extends StackedView<EventDetailViewModel> {
               ],
               if (model.selectedBottomNavIndex == 2) ...[
                 // EventDetailMap(event: event),
-                FlutterMap(
-                  mapController: model.mapController,
-                  options: MapOptions(
-                    zoom: 15,
-                    center: model.destination,
-                    onTap: (tapPosition, latLng) {
-                      model.onTapMap(latLng);
-                      showDialog(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (context) {
-                          return AddWaypointDialog(model: model);
-                        },
-                      );
-                    },
-                  ),
+                Stack(
                   children: [
-                    TileLayer(
-                      urlTemplate:
-                          "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                      userAgentPackageName: 'dev.fleaflet.flutter_map.example',
-                    ),
-                    MarkerLayer(
-                      markers: model.markers,
-                    ),
-                    PolylineLayer(
-                      polylineCulling: false,
-                      polylines: [
-                        Polyline(
-                          points: [
-                            model.destination,
-                            ...model.waypoints
-                                .map((e) => LatLng(e.lat, e.long))
-                                .toList(),
-                          ],
-                          color: AppColors.appSkyBlue,
-                          strokeWidth: 2,
+                    Positioned.fill(
+                      child: FlutterMap(
+                        mapController: model.mapController,
+                        options: MapOptions(
+                          zoom: 15,
+                          center: model.destination,
+                          onTap: (tapPosition, latLng) {
+                            model.onTapMap(latLng);
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (context) {
+                                return AddWaypointDialog(model: model);
+                              },
+                            );
+                          },
                         ),
-                      ],
+                        children: [
+                          TileLayer(
+                            urlTemplate:
+                                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                            userAgentPackageName:
+                                'dev.fleaflet.flutter_map.example',
+                          ),
+                          MarkerLayer(
+                            markers: model.markers,
+                          ),
+                          PolylineLayer(
+                            polylineCulling: true,
+                            polylines: [
+                              Polyline(
+                                points: [
+                                  model.destination,
+                                  ...model.waypoints
+                                      .map((e) => LatLng(e.lat, e.long))
+                                      .toList(),
+                                ],
+                                color: AppColors.appSkyBlue,
+                                strokeWidth: 2,
+                              ),
+                              if (model.selectedRoute != -1)
+                                Polyline(
+                                  points: model.polypoints,
+                                  color: AppColors.purple,
+                                  strokeWidth: 5.w,
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    Positioned(
+                      top: 100.h,
+                      right: 24.w,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          color: AppColors.appFaddedBlue,
+                        ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10.w,
+                          vertical: 5.h,
+                        ),
+                        child: Text(
+                          'Total routes found: ${model.routeResponse?.routes?.length ?? 0}',
+                          style: TextStyling.semiBold.copyWith(
+                            color: AppColors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 100.h,
+                      left: 24.w,
+                      child: GestureDetector(
+                        onTap: model.changeRoute,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            color: AppColors.appFaddedBlue,
+                          ),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 10.w,
+                            vertical: 5.h,
+                          ),
+                          child: Text(
+                            'Change route',
+                            style: TextStyling.semiBold.copyWith(
+                              color: AppColors.white,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),

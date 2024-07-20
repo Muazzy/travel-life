@@ -29,6 +29,7 @@ class FlavorService {
   }
 
   static String get getORSBaseApi => "https://api.openrouteservice.org";
+  static String get getOSRMBaseApi => "http://router.project-osrm.org";
 
   static String get getORSApiKey =>
       "5b3ce3597851110001cf624833fa518aceae4e1b8fb38866fee91852";

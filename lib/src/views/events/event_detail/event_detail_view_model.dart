@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_svg/svg.dart';
@@ -8,6 +10,7 @@ import 'package:stacked/stacked.dart';
 import 'package:starter_app/generated/assets.dart';
 import 'package:starter_app/src/models/event.dart';
 import 'package:starter_app/src/models/ors_models/get_geocode_response_model.dart';
+import 'package:starter_app/src/models/osrm_models/osrm_route_response.dart';
 import 'package:starter_app/src/models/waypoint.dart';
 import 'package:starter_app/src/services/local/base/data_view_model.dart';
 import 'package:starter_app/src/services/remote/base/database_view_model.dart';
@@ -23,6 +26,9 @@ class EventDetailViewModel extends ReactiveViewModel
         OrsServiceViewModel {
   late final Event event;
   late LatLng destination;
+  late LatLng endDestination;
+
+  List<LatLng> polypoints = [];
 
   // double? waypointLat;
   // double? waypointLong;
@@ -39,12 +45,26 @@ class EventDetailViewModel extends ReactiveViewModel
   init(Event e) {
     event = e;
     destination = LatLng(event.destLat ?? 0, event.destLong ?? 0);
+    endDestination = generateRandomLatLng(destination, 10);
+
     markers.add(
       Marker(
         width: 30.0,
         height: 30.0,
         point: destination,
         builder: (context) => SvgPicture.asset(AssetIcons.locationMarker),
+      ),
+    );
+
+    markers.add(
+      Marker(
+        width: 30.0,
+        height: 30.0,
+        point: endDestination,
+        builder: (context) => SvgPicture.asset(
+          AssetIcons.locationMarker,
+          color: AppColors.red,
+        ),
       ),
     );
     // markers.add(
@@ -60,6 +80,7 @@ class EventDetailViewModel extends ReactiveViewModel
     // );
 
     getAllWayPoints();
+    getRoutes();
     notifyListeners();
   }
 
@@ -205,4 +226,68 @@ class EventDetailViewModel extends ReactiveViewModel
   //   destLat = v.geometry?.coordinates?.last;
   //   notifyListeners();
   // }
+
+  LatLng generateRandomLatLng(LatLng point, double rangeInKm) {
+    final random = Random();
+
+    // Convert range from kilometers to degrees
+    final rangeInDegrees = rangeInKm / 111.32;
+
+    // Generate random offset within the specified range
+    final randomLatOffset = (random.nextDouble() * 2 - 1) * rangeInDegrees;
+    final randomLngOffset = (random.nextDouble() * 2 - 1) * rangeInDegrees;
+
+    // Calculate new latitude and longitude
+    final randomLat = point.latitude + randomLatOffset;
+    final randomLng = point.longitude + randomLngOffset;
+
+    return LatLng(randomLat, randomLng);
+  }
+
+  OsrmRouteResponse? routeResponse;
+
+  int selectedRoute = -1;
+
+  getRoutes() async {
+    setBusy(true);
+    final res = await orsService.osrmRoute(
+      lat1: destination.latitude,
+      lon1: destination.longitude,
+      lat2: endDestination.latitude,
+      lon2: endDestination.longitude,
+    );
+
+    if (res == null) {
+      setBusy(false);
+      return;
+    }
+    res.when(
+      success: (value) {
+        setBusy(false);
+        routeResponse = value;
+        print('check osrmRoute total routes ${routeResponse?.routes?.length}');
+        if (routeResponse?.routes?.isNotEmpty ?? false) {
+          selectedRoute = 0;
+          polypoints =
+              OsrmRouteResponse.getLatLngFromRoute(routeResponse!.routes![0]);
+        }
+        notifyListeners();
+      },
+      failure: (error) {
+        print(error);
+        setBusy(false);
+        print(error);
+      },
+    );
+    setBusy(false);
+  }
+
+  changeRoute() {
+    if (routeResponse?.routes?.isNotEmpty ?? false) {
+      selectedRoute = (selectedRoute + 1) % routeResponse!.routes!.length;
+      polypoints = OsrmRouteResponse.getLatLngFromRoute(
+          routeResponse!.routes![selectedRoute]);
+      notifyListeners();
+    }
+  }
 }

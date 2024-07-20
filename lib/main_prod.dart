@@ -29,3 +29,9 @@ void main() async {
 
   runApp(AppView());
 }
+
+
+//TODO: 
+// 1. add the events list inside the data viewmodel so that we can show the events without reentering the credentials.
+// 2. fix some ui issues
+// 3. calculate the total working hours now and send it to tanzeel.
